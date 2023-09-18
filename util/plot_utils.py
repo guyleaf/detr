@@ -9,6 +9,21 @@ import pandas as pd
 import seaborn as sns
 import torch
 
+COCO_EVAL_STAT_COLUMNS = [
+    "mAP",
+    "mAP@.50",
+    "mAP@.75",
+    "mAP@s",
+    "mAP@m",
+    "mAP@l",
+    "mAR@1",
+    "mAR@10",
+    "mAR@100",
+    "mAR@s",
+    "mAR@m",
+    "mAR@l",
+]
+
 
 def plot_logs(
     logs,
@@ -63,21 +78,26 @@ def plot_logs(
             return
 
     # load log file(s) and plot
-    dfs = [pd.read_json(Path(p) / log_name, lines=True) for p in logs]
+    dfs: list[pd.DataFrame] = [
+        pd.read_json(Path(p) / log_name, lines=True) for p in logs
+    ]
 
     fig, axs = plt.subplots(ncols=len(fields), figsize=(16, 5))
 
     for df, color in zip(dfs, sns.color_palette(n_colors=len(logs))):
+        coco_eval = pd.DataFrame(
+            np.stack(df.test_coco_eval_bbox.dropna().values),
+            columns=COCO_EVAL_STAT_COLUMNS,
+        )
+
         for j, field in enumerate(fields):
-            if field == "mAP":
-                coco_eval = (
-                    pd.DataFrame(np.stack(df.test_coco_eval_bbox.dropna().values)[:, 1])
-                    .ewm(com=ewm_col)
-                    .mean()
-                )
-                axs[j].plot(coco_eval, c=color)
+            if field in coco_eval:
+                coco_metric = coco_eval[field].ewm(com=ewm_col).mean()
+                axs[j].plot(coco_metric, c=color)
             else:
-                df.interpolate().ewm(com=ewm_col).mean().plot(
+                df.select_dtypes(include="number").interpolate().ewm(
+                    com=ewm_col
+                ).mean().plot(
                     y=[f"train_{field}", f"test_{field}"],
                     ax=axs[j],
                     color=[color] * 2,
