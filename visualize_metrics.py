@@ -41,18 +41,19 @@ def get_arg_parser():
 
 def main(args):
     experiments = [Path(experiment) for experiment in args.experiments]
-    result = plot_logs(experiments, fields=args.keys, ewm_col=args.ewm_com)
+    result = plot_logs(experiments, fields=args.keys, ewm_col=args.log_ewm_com)
     assert result is not None
 
     figure, _ = result
+    figure.tight_layout()
     figure.savefig(os.path.join(args.output_dir, "figure.jpg"))
     figure.clear()
 
     for experiment in experiments:
         output_file = os.path.join(args.output_dir, f"{experiment.name}_pr.jpg")
         eval_dir = experiment / "eval"
-        files = list(eval_dir.glob("*.pth"))
-        figure, _ = plot_precision_recall(files, naming_scheme=args.naming_scheme)
+        files = sorted(eval_dir.glob("*.pth"))
+        figure, _ = plot_precision_recall(files, naming_scheme=args.pr_naming_scheme)
         figure.savefig(output_file)
         figure.clear()
 

@@ -82,7 +82,7 @@ def plot_logs(
         pd.read_json(Path(p) / log_name, lines=True) for p in logs
     ]
 
-    fig, axs = plt.subplots(ncols=len(fields), figsize=(16, 5))
+    fig, axs = plt.subplots(ncols=len(fields), figsize=(32, 5))
 
     for df, color in zip(dfs, sns.color_palette(n_colors=len(logs))):
         coco_eval = pd.DataFrame(
