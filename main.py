@@ -159,7 +159,7 @@ def get_args_parser():
         "--device", default="cuda", help="device to use for training / testing"
     )
     parser.add_argument("--seed", default=42, type=int)
-    parser.add_argument("--resume", default="", help="resume from checkpoint")
+    parser.add_argument("--resume", type=bool, help="resume from checkpoint")
     parser.add_argument(
         "--start_epoch", default=0, type=int, metavar="N", help="start epoch"
     )
@@ -280,19 +280,11 @@ def main(args):
             k: v if current_model_dict[k].size() == v.size() else current_model_dict[k]
             for k, v in loaded_state_dict.items()
         }
-        _model.load_state_dict(new_state_dict, strict=False)
+        _model.load_state_dict(new_state_dict)
 
-    output_dir = Path(args.output_dir)
-    if args.resume:
-        if args.resume.startswith("https"):
-            checkpoint = torch.hub.load_state_dict_from_url(
-                args.resume, map_location="cpu", check_hash=True
-            )
-        else:
-            checkpoint = torch.load(args.resume, map_location="cpu")
-        model_without_ddp.load_state_dict(checkpoint["model"])
         if (
-            not args.eval
+            args.resume
+            and not args.eval
             and "optimizer" in checkpoint
             and "lr_scheduler" in checkpoint
             and "epoch" in checkpoint
@@ -300,6 +292,8 @@ def main(args):
             optimizer.load_state_dict(checkpoint["optimizer"])
             lr_scheduler.load_state_dict(checkpoint["lr_scheduler"])
             args.start_epoch = checkpoint["epoch"] + 1
+
+    output_dir = Path(args.output_dir)
 
     if args.eval:
         test_stats, coco_evaluator = evaluate(

@@ -11,3 +11,5 @@ onnxruntime
 # visualize
 seaborn
 pandas
+opencv-python
+matplotlib
